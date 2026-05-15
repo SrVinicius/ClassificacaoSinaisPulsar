@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pulsar Explorer - Classificador de Pulsares</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <style>
@@ -59,6 +60,16 @@
         }
 
         .stars-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        #three-container {
             position: fixed;
             top: 0;
             left: 0;
@@ -418,6 +429,7 @@
     </style>
 </head>
 <body>
+    <div id="three-container"></div>
     <div class="stars-background" id="starsBackground"></div>
 
     <header>
@@ -525,6 +537,157 @@
     </footer>
 
     <script>
+        // Criar cena 3D com pulsar
+        function create3DPulsar() {
+            const container = document.getElementById('three-container');
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+
+            // Scene setup
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+
+            renderer.setSize(width, height);
+            renderer.setClearColor(0x000000, 0);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+
+            camera.position.z = 5;
+
+            // Criar pulsar (esfera com emissão de luz)
+            const pulsarGeometry = new THREE.SphereGeometry(1, 64, 64);
+            const pulsarMaterial = new THREE.MeshPhongMaterial({
+                color: 0x00ff88,
+                emissive: 0x00ff88,
+                emissiveIntensity: 0.8,
+                wireframe: false,
+                shininess: 100
+            });
+            const pulsar = new THREE.Mesh(pulsarGeometry, pulsarMaterial);
+            scene.add(pulsar);
+
+            // Luz do pulsar
+            const light1 = new THREE.PointLight(0x00ff88, 2, 100);
+            light1.position.copy(pulsar.position);
+            scene.add(light1);
+
+            // Luz secundária (magenta)
+            const light2 = new THREE.PointLight(0xff00ff, 1.5, 80);
+            light2.position.set(-3, 3, 3);
+            scene.add(light2);
+
+            // Luz ambiente
+            const ambientLight = new THREE.AmbientLight(0x0a0e27, 0.4);
+            scene.add(ambientLight);
+
+            // Criar partículas ao redor do pulsar
+            const particleCount = 200;
+            const particleGeometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 3);
+            const colors = new Float32Array(particleCount * 3);
+
+            for (let i = 0; i < particleCount; i++) {
+                const x = (Math.random() - 0.5) * 15;
+                const y = (Math.random() - 0.5) * 15;
+                const z = (Math.random() - 0.5) * 15;
+
+                positions[i * 3] = x;
+                positions[i * 3 + 1] = y;
+                positions[i * 3 + 2] = z;
+
+                const color = Math.random() > 0.5 ? [0, 1, 0.5] : [1, 0, 1];
+                colors[i * 3] = color[0];
+                colors[i * 3 + 1] = color[1];
+                colors[i * 3 + 2] = color[2];
+            }
+
+            particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            particleGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const particleMaterial = new THREE.PointsMaterial({
+                size: 0.1,
+                sizeAttenuation: true,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.6
+            });
+
+            const particles = new THREE.Points(particleGeometry, particleMaterial);
+            scene.add(particles);
+
+            // Anel ao redor do pulsar
+            const ringGeometry = new THREE.TorusGeometry(2.5, 0.3, 32, 100);
+            const ringMaterial = new THREE.MeshPhongMaterial({
+                color: 0x00d4ff,
+                emissive: 0x00d4ff,
+                emissiveIntensity: 0.5,
+                transparent: true,
+                opacity: 0.8
+            });
+            const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+            ring.rotation.x = Math.PI * 0.3;
+            scene.add(ring);
+
+            // Anel secundário
+            const ring2 = new THREE.Mesh(ringGeometry, new THREE.MeshPhongMaterial({
+                color: 0xff00ff,
+                emissive: 0xff00ff,
+                emissiveIntensity: 0.4,
+                transparent: true,
+                opacity: 0.6
+            }));
+            ring2.rotation.z = Math.PI * 0.4;
+            ring2.scale.set(1.5, 1.5, 1.5);
+            scene.add(ring2);
+
+            // Variáveis para animação
+            let pulseScale = 1;
+            let pulseDirection = 1;
+
+            // Função de animação
+            function animate() {
+                requestAnimationFrame(animate);
+
+                // Rotação do pulsar
+                pulsar.rotation.x += 0.002;
+                pulsar.rotation.y += 0.003;
+
+                // Pulsação do pulsar
+                pulseScale += pulseDirection * 0.01;
+                if (pulseScale > 1.2 || pulseScale < 0.95) {
+                    pulseDirection *= -1;
+                }
+                pulsar.scale.set(pulseScale, pulseScale, pulseScale);
+
+                // Atualizar luz do pulsar
+                light1.intensity = 1 + Math.sin(Date.now() * 0.003) * 0.5;
+
+                // Rotação dos anéis
+                ring.rotation.x += 0.001;
+                ring.rotation.z += 0.0005;
+                ring2.rotation.z -= 0.0008;
+                ring2.rotation.x += 0.0003;
+
+                // Movimento suave das partículas
+                particles.rotation.x += 0.0001;
+                particles.rotation.y += 0.0002;
+
+                renderer.render(scene, camera);
+            }
+
+            animate();
+
+            // Ajustar tamanho ao redimensionar
+            window.addEventListener('resize', () => {
+                const newWidth = window.innerWidth;
+                const newHeight = window.innerHeight;
+                camera.aspect = newWidth / newHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(newWidth, newHeight);
+            });
+        }
+
         // Criar fundo com estrelas
         function createStarsBackground() {
             const starsContainer = document.getElementById('starsBackground');
@@ -730,6 +893,7 @@
 
         // Inicializar quando a página carrega
         window.addEventListener('load', () => {
+            create3DPulsar();
             createStarsBackground();
             loadData();
         });
