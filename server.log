@@ -6,29 +6,8 @@
  * Restarting with stat
  * Debugger is active!
  * Debugger PIN: 593-137-042
-127.0.0.1 - - [15/May/2026 18:52:52] "GET /api/stats HTTP/1.1" 200 -
-127.0.0.1 - - [15/May/2026 18:52:59] "GET / HTTP/1.1" 200 -
-127.0.0.1 - - [15/May/2026 18:53:31] "GET /api/stats HTTP/1.1" 200 -
-127.0.0.1 - - [15/May/2026 18:53:31] "GET /api/models-performance HTTP/1.1" 200 -
-127.0.0.1 - - [15/May/2026 18:53:31] "GET /api/dataset-info HTTP/1.1" 200 -
-127.0.0.1 - - [15/May/2026 18:56:38] "GET / HTTP/1.1" 200 -
-127.0.0.1 - - [15/May/2026 18:56:38] "GET /api/stats HTTP/1.1" 200 -
-127.0.0.1 - - [15/May/2026 18:56:38] "GET /api/models-performance HTTP/1.1" 200 -
-127.0.0.1 - - [15/May/2026 18:56:38] "GET /api/feature-stats HTTP/1.1" 200 -
-127.0.0.1 - - [15/May/2026 18:57:23] "GET / HTTP/1.1" 200 -
-127.0.0.1 - - [15/May/2026 18:57:23] "GET /api/stats HTTP/1.1" 200 -
-127.0.0.1 - - [15/May/2026 18:57:23] "GET /api/models-performance HTTP/1.1" 200 -
-127.0.0.1 - - [15/May/2026 18:57:23] "GET /api/feature-stats HTTP/1.1" 200 -
-127.0.0.1 - - [15/May/2026 18:57:23] "GET /api/dataset-info HTTP/1.1" 200 -
-127.0.0.1 - - [15/May/2026 18:58:58] "GET / HTTP/1.1" 200 -
-127.0.0.1 - - [15/May/2026 18:58:59] "GET /api/stats HTTP/1.1" 200 -
-127.0.0.1 - - [15/May/2026 18:58:59] "GET /api/models-performance HTTP/1.1" 200 -
-127.0.0.1 - - [15/May/2026 18:58:59] "GET /api/dataset-info HTTP/1.1" 200 -
-127.0.0.1 - - [15/May/2026 18:58:59] "GET /api/feature-stats HTTP/1.1" 200 -
-127.0.0.1 - - [15/May/2026 18:58:59] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
-127.0.0.1 - - [15/May/2026 19:03:42] "GET / HTTP/1.1" 200 -
-127.0.0.1 - - [15/May/2026 19:07:55] "GET / HTTP/1.1" 200 -
-127.0.0.1 - - [15/May/2026 19:07:56] "GET /api/stats HTTP/1.1" 200 -
-127.0.0.1 - - [15/May/2026 19:07:56] "GET /api/models-performance HTTP/1.1" 200 -
-127.0.0.1 - - [15/May/2026 19:07:56] "GET /api/dataset-info HTTP/1.1" 200 -
-127.0.0.1 - - [15/May/2026 19:07:56] "GET /api/feature-stats HTTP/1.1" 200 -
+127.0.0.1 - - [18/May/2026 22:09:44] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [18/May/2026 22:13:16] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [18/May/2026 22:17:13] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [18/May/2026 22:21:29] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [18/May/2026 22:22:49] "GET / HTTP/1.1" 200 -

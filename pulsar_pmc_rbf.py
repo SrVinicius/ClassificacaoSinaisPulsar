@@ -19,6 +19,7 @@ NOTA SOBRE OS DADOS:
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 import os
 import time
 
@@ -687,6 +688,300 @@ def plotar_comparacao_metricas(
 
 
 # =======================================================================
+# MÓDULO 5b — VISUALIZAÇÃO GAMIFICADA (SPACE INVADERS)
+# =======================================================================
+
+def visualizacao_space_invaders(
+    metricas_pmc:    dict,
+    metricas_rbf:    dict,
+    historico_perda: list,
+    t_pmc:           float = None,
+    t_rbf:           float = None,
+    caminho_saida:   str   = None,
+) -> None:
+    """
+    Visualização gamificada no estilo Space Invaders.
+    Cada nave destruída revela uma informação da análise.
+
+    Ondas:
+      WAVE 1 — Dataset (4 naves, vermelho)
+      WAVE 2 — PMC     (5 naves, ciano)
+      WAVE 3 — RBF     (5 naves, amarelo)
+      WAVE 4 — BOSS    (1 nave,  magenta)
+    """
+    t_pmc_s = f"{t_pmc:.2f}s" if t_pmc is not None else "?"
+    t_rbf_s = f"{t_rbf:.2f}s" if t_rbf is not None else "?"
+    venc = 'PMC' if metricas_pmc['f1_score'] >= metricas_rbf['f1_score'] else 'RBF'
+
+    # ── Definição dos invasores ──────────────────────────────────────────
+    # Estrutura: (label, info_revelada, tipo, wave, x0, y)
+    inv_defs = [
+        # WAVE 1 — Dataset (y=60)
+        ('DAT', 'Dataset: HTRU2 — Predicting Pulsar Star',                  'A', 1, 18, 60),
+        ('FTR', 'Features: 8  |  Total: 12.528 amostras  |  Classes: 2',   'A', 1, 38, 60),
+        ('SPL', 'Treino: 10.022  |  Teste: 2.506  (divisao 80/20)',         'A', 1, 59, 60),
+        ('CLS', 'Classe 0: ~91% (nao-pulsar)  |  Classe 1: ~9% (pulsar)',  'A', 1, 80, 60),
+        # WAVE 2 — PMC (y=70)
+        ('PMC', '>>> PMC — Perceptron Multicamadas <<<',                                              'B', 2, 10, 70),
+        ('ACC', f'[PMC] Acuracia:  {metricas_pmc["acuracia"]:.4f}',                                  'B', 2, 27, 70),
+        ('PRE', f'[PMC] Precisao:  {metricas_pmc["precisao"]:.4f}',                                  'B', 2, 47, 70),
+        ('REC', f'[PMC] Revocacao: {metricas_pmc["revocacao"]:.4f}',                                 'B', 2, 67, 70),
+        ('F1 ', f'[PMC] F1-Score:  {metricas_pmc["f1_score"]:.4f}  |  Epocas: {len(historico_perda)}  |  t={t_pmc_s}', 'B', 2, 87, 70),
+        # WAVE 3 — RBF (y=80)
+        ('RBF', '>>> Rede RBF — Funcao de Base Radial <<<',                                          'C', 3, 10, 80),
+        ('ACC', f'[RBF] Acuracia:  {metricas_rbf["acuracia"]:.4f}',                                  'C', 3, 27, 80),
+        ('PRE', f'[RBF] Precisao:  {metricas_rbf["precisao"]:.4f}',                                  'C', 3, 47, 80),
+        ('REC', f'[RBF] Revocacao: {metricas_rbf["revocacao"]:.4f}',                                 'C', 3, 67, 80),
+        ('F1 ', f'[RBF] F1-Score:  {metricas_rbf["f1_score"]:.4f}  |  t={t_rbf_s}',                 'C', 3, 87, 80),
+        # WAVE 4 — BOSS (y=89)
+        ('BOSS',
+         f'VENCEDOR: {venc}  |  PMC F1={metricas_pmc["f1_score"]:.4f}  RBF F1={metricas_rbf["f1_score"]:.4f}',
+         'X', 4, 50, 89),
+    ]
+    n_inv = len(inv_defs)
+
+    # ── Figura ──────────────────────────────────────────────────────────
+    fig = plt.figure(figsize=(14, 9), facecolor='black')
+    ax  = fig.add_axes([0.0, 0.0, 1.0, 1.0])
+    ax.set_facecolor('black')
+    ax.set_xlim(0, 100)
+    ax.set_ylim(0, 100)
+    ax.axis('off')
+
+    # Estrelas de fundo
+    np.random.seed(77)
+    sx = np.random.uniform(0, 100, 220)
+    sy = np.random.uniform(0, 100, 220)
+    ss = np.random.uniform(0.3, 3.5, 220)
+    ax.scatter(sx, sy, s=ss, c='white', alpha=0.5, zorder=0)
+
+    # Título e HUD
+    ax.text(50, 98.5, '★  PULSAR SPACE INVADERS  ★',
+            color='#00FF41', fontsize=14, ha='center', va='top',
+            fontfamily='monospace', fontweight='bold', zorder=10)
+    ax.text(50, 95.2, 'HTRU2  —  PMC vs RBF  —  Analise Gamificada',
+            color='#555555', fontsize=8, ha='center', va='top',
+            fontfamily='monospace', zorder=10)
+
+    score_obj = ax.text(1, 98.5, 'SCORE: 0',
+                        color='#00FF41', fontsize=9, va='top',
+                        fontfamily='monospace', fontweight='bold', zorder=10)
+    wave_obj  = ax.text(72, 98.5, 'WAVE: 1',
+                        color='#FFFF00', fontsize=9, va='top',
+                        fontfamily='monospace', fontweight='bold', zorder=10)
+
+    # Divisória do log
+    ax.plot([1, 99], [55.5, 55.5], color='#00FF41', lw=0.6, alpha=0.3, zorder=5)
+    ax.text(50, 55, '[ ANALYSIS LOG ]',
+            color='#00FF41', fontsize=6.5, ha='center', va='top',
+            fontfamily='monospace', alpha=0.45, zorder=5)
+
+    # ── Invasores ───────────────────────────────────────────────────────
+    inv_chars  = {'A': '(=v=)', 'B': '[>+<]', 'C': '{*-*}', 'X': '<<BOSS>>'}
+    inv_colors = {'A': '#FF6B6B', 'B': '#4ECDC4', 'C': '#FFE66D', 'X': '#FF44FF'}
+    inv_sizes  = {'A': 9,         'B': 9,         'C': 9,         'X': 12}
+
+    inv_objs = []
+    for lbl, info, typ, wave, x0, y in inv_defs:
+        co = inv_colors[typ]
+        char_t = ax.text(x0, y, inv_chars[typ],
+                         color=co, fontsize=inv_sizes[typ],
+                         ha='center', va='center',
+                         fontfamily='monospace', fontweight='bold',
+                         zorder=8, alpha=1.0)
+        lbl_t = ax.text(x0, y - 3.5, lbl,
+                        color='#777777', fontsize=5.5,
+                        ha='center', va='top',
+                        fontfamily='monospace', zorder=8, alpha=1.0)
+        inv_objs.append({'char': char_t, 'lbl': lbl_t,
+                         'alive': True, 'x': float(x0), 'y': float(y)})
+
+    # ── Nave do jogador ──────────────────────────────────────────────────
+    player_obj = ax.text(50, 4, ' /^\\ \n/___\\',
+                         color='#00BFFF', fontsize=10,
+                         ha='center', va='bottom',
+                         fontfamily='monospace', fontweight='bold', zorder=8)
+
+    # ── Projétil ─────────────────────────────────────────────────────────
+    bullet_obj = ax.text(50, 10, '|',
+                         color='#FF4444', fontsize=14,
+                         ha='center', va='center',
+                         fontfamily='monospace', fontweight='bold',
+                         zorder=9, visible=False)
+
+    # ── Explosão ─────────────────────────────────────────────────────────
+    expl_obj = ax.text(50, 50, '* + *\n+ * +\n* + *',
+                       color='#FFAA00', fontsize=11,
+                       ha='center', va='center',
+                       fontfamily='monospace', fontweight='bold',
+                       zorder=9, visible=False)
+
+    # ── Slots de texto do log ─────────────────────────────────────────────
+    ys_info = np.linspace(53, 11, n_inv)
+    info_slots = []
+    for iy in ys_info:
+        t = ax.text(2, iy, '', color='#00FF41', fontsize=7.5,
+                    va='center', fontfamily='monospace', zorder=10, alpha=0.0)
+        info_slots.append(t)
+
+    # ── Estado da animação ────────────────────────────────────────────────
+    S = {
+        'phase': 'aiming',
+        'pf':    0,
+        'tidx':  0,
+        'bx':    50.0,
+        'by':    7.0,
+        'px':    50.0,
+        'score': 0,
+        'revealed': 0,
+    }
+
+    FA = 5    # frames mira
+    FE = 8    # frames explosão
+    FR = 10   # frames fade do texto
+    FP = 8    # frames pausa
+    BS = 7.5  # velocidade do projétil (unidades/frame)
+
+    def update(frame):
+        S['pf'] += 1
+
+        # Oscilação lateral dos invasores vivos
+        osc = 2.5 * np.sin(frame * 0.06)
+        for i in range(n_inv):
+            if inv_objs[i]['alive']:
+                nx = inv_defs[i][4] + osc
+                ny = inv_defs[i][5]
+                inv_objs[i]['char'].set_position((nx, ny))
+                inv_objs[i]['lbl'].set_position((nx, ny - 3.5))
+                inv_objs[i]['x'] = nx
+
+        # Estado final
+        if S['tidx'] >= n_inv:
+            if S['phase'] != 'done':
+                S['phase'] = 'done'
+                bullet_obj.set_visible(False)
+                expl_obj.set_visible(False)
+                ax.text(50, 31, '★  MISSAO CONCLUIDA!  ★\n\nTodos os dados de analise foram revelados!',
+                        color='#00FF41', fontsize=13, ha='center', va='center',
+                        fontfamily='monospace', fontweight='bold', zorder=20,
+                        bbox=dict(boxstyle='round,pad=0.8', facecolor='#000800',
+                                  edgecolor='#00FF41', linewidth=2.5, alpha=0.95))
+            return
+
+        tidx = S['tidx']
+        tgt  = inv_objs[tidx]
+        d    = inv_defs[tidx]
+
+        phase = S['phase']
+
+        if phase == 'aiming':
+            bullet_obj.set_visible(False)
+            # Nave desliza suavemente para o alvo
+            tx = tgt['x']
+            S['px'] += (tx - S['px']) * 0.45
+            player_obj.set_position((S['px'], 4))
+
+            if S['pf'] >= FA:
+                S['phase'] = 'firing'
+                S['pf']    = 0
+                S['bx']    = S['px']
+                S['by']    = 7.0
+                bullet_obj.set_position((S['bx'], S['by']))
+                bullet_obj.set_visible(True)
+
+        elif phase == 'firing':
+            S['by'] += BS
+            S['bx']  = tgt['x']  # míssil guiado
+            bullet_obj.set_position((S['bx'], S['by']))
+
+            if S['by'] >= tgt['y'] - 1.2:
+                bullet_obj.set_visible(False)
+                tgt['alive'] = False
+                tgt['char'].set_visible(False)
+                tgt['lbl'].set_visible(False)
+
+                expl_obj.set_position((tgt['x'], tgt['y']))
+                expl_obj.set_color(inv_colors[d[2]])
+                expl_obj.set_visible(True)
+
+                S['score'] += 100 * d[3]
+                score_obj.set_text(f'SCORE: {S["score"]}')
+                S['phase'] = 'exploding'
+                S['pf']    = 0
+
+        elif phase == 'exploding':
+            expl_obj.set_visible(S['pf'] % 2 == 0)
+
+            if S['pf'] >= FE:
+                expl_obj.set_visible(False)
+                S['phase'] = 'revealing'
+                S['pf']    = 0
+
+        elif phase == 'revealing':
+            ri    = S['revealed']
+            alpha = min(1.0, S['pf'] / FR)
+            if ri < n_inv:
+                info_slots[ri].set_text(f'> {d[1]}')
+                info_slots[ri].set_color(inv_colors[d[2]])
+                info_slots[ri].set_alpha(alpha)
+
+            if S['pf'] >= FR:
+                if S['revealed'] < n_inv:
+                    info_slots[S['revealed']].set_alpha(1.0)
+                    S['revealed'] += 1
+                S['phase'] = 'pausing'
+                S['pf']    = 0
+
+        elif phase == 'pausing':
+            if S['pf'] >= FP:
+                S['tidx'] += 1
+                if S['tidx'] < n_inv:
+                    wave_obj.set_text(f'WAVE: {inv_defs[S["tidx"]][3]}')
+                S['phase'] = 'aiming'
+                S['pf']    = 0
+
+    avg_bullet_f = int(((60 - 7) + (89 - 7)) / 2 / BS) + 2
+    total_frames = n_inv * (FA + avg_bullet_f + FE + FR + FP) + 100
+
+    anim = animation.FuncAnimation(
+        fig, update, frames=total_frames,
+        interval=50, repeat=False, blit=False,
+    )
+
+    # Detecta se está em IPython/Jupyter (VS Code notebook, JupyterLab, etc.)
+    _in_ipython = False
+    try:
+        _ip = get_ipython()  # type: ignore[name-defined]  # builtin do IPython
+        if _ip is not None:
+            _in_ipython = True
+    except NameError:
+        pass
+
+    if _in_ipython:
+        # Jupyter / VS Code Interactive: salva GIF e exibe inline
+        _gif = caminho_saida or 'space_invaders_analise.gif'
+        print(f"  Renderizando GIF ({total_frames} frames), aguarde...")
+        try:
+            anim.save(_gif, writer='pillow', fps=20, dpi=90)
+            print(f"  GIF salvo: {_gif}")
+            from IPython.display import Image, display as _ipy_display  # type: ignore
+            plt.close(fig)
+            _ipy_display(Image(_gif))
+        except Exception as exc:
+            print(f"  Erro ao gerar GIF: {exc}")
+            plt.show()
+    else:
+        # Script normal: animação ao vivo
+        if caminho_saida:
+            try:
+                anim.save(caminho_saida, writer='pillow', fps=20, dpi=90)
+                print(f"  Animacao salva: {caminho_saida}")
+            except Exception as exc:
+                print(f"  Aviso: nao foi possivel salvar ({exc})")
+        plt.show()
+
+
+# =======================================================================
 # BLOCO PRINCIPAL DE EXECUÇÃO
 # =======================================================================
 
@@ -796,23 +1091,19 @@ if __name__ == '__main__':
     print(f'\n  Tempo PMC: {t_pmc:.2f}s  |  Tempo RBF: {t_rbf:.2f}s')
 
     # ---------------------------------------------------------------
-    # ETAPA 6 — Gráficos
+    # ETAPA 6 — Visualização Gamificada (Space Invaders)
     # ---------------------------------------------------------------
     print(f"\n{'─'*65}")
-    print('  [ETAPA 6] Gerando Graficos')
+    print('  [ETAPA 6] Iniciando Visualizacao Gamificada — Space Invaders')
+    print('  Cada nave destruida revela uma informacao da analise.')
     print(f"{'─'*65}")
 
-    # Gráfico 1: Curva de convergência BCE do PMC (obrigatório)
-    plotar_convergencia_pmc(
-        pmc.historico_perda,
-        caminho_saida='curva_convergencia_pmc.png',
-    )
-
-    # Gráfico 2: Comparação de métricas PMC vs RBF (bônus)
-    plotar_comparacao_metricas(
+    visualizacao_space_invaders(
         metricas_pmc,
         metricas_rbf,
-        caminho_saida='comparacao_pmc_rbf.png',
+        pmc.historico_perda,
+        t_pmc=t_pmc,
+        t_rbf=t_rbf,
     )
 
     print(f'\n{SEP}')
